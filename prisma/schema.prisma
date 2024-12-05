@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id           Int           @id @default(autoincrement())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  name         String
+  email        String        @unique
+  phone        String?
+  company      String?
+  leads        Lead[]
+  prospects    Prospect[]
+  quotes       Quote[]
+  orders       Order[]
+  invoices     Invoice[]
+  contracts    Contract[]
+  recoveries   Recovery[]
+  supportTickets SupportTicket[]
+}
+
+model Lead {
+  id             Int      @id @default(autoincrement())
+  company        String
+  contact        String
+  designation    String?
+  mobile         String
+  city           String
+  state          String
+  source         String
+  since          DateTime
+  poc            String
+  product        String
+  lastTalk       DateTime?
+  next           DateTime?
+  transferredOn  DateTime?
+  status         String   @default("active")
+  email          String?
+  country        String   @default("India")
+  requirements   String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  customer       Customer @relation(fields: [customerId], references: [id])
+  customerId     Int 
+}
+
+model Prospect {
+  id              Int      @id @default(autoincrement())
+  company         String
+  title           String
+  firstName       String
+  lastName        String
+  email           String?
+  website         String?
+  mobile          String
+  industry        String?
+  country         String   @default("India")
+  state           String?
+  city            String?
+  isCustomer      Boolean  @default(false)
+  isProspect      Boolean  @default(true)
+  isSupplier      Boolean  @default(false)
+  isNeighbour     Boolean  @default(false)
+  isFriend        Boolean  @default(false)
+  product         String?
+  executive       String?
+  businessProspect Float?
+  orderTarget     Float?
+  stage           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  customer        Customer @relation(fields: [customerId], references: [id])
+  customerId      Int
+}
+
+model Quote {
+  id             Int           @id @default(autoincrement())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  quoteNumber    String        @unique
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  customerId     Int
+  contactPerson  String?
+  salesCredit    String?
+  billingAddress String?
+  shippingAddress String?
+  items          QuoteItem[]
+  terms          QuoteTerm[]
+  notes          String?
+  bankDetails    String?
+  amount         Float
+  status         QuoteStatus
+  validUntil     DateTime
+  isProforma     Boolean       @default(false)
+  order          Order?
+}
+model QuoteItem {
+  id             Int           @id @default(autoincrement())
+  quote          Quote         @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId        Int
+  item           String
+  description    String?
+  hsnCode        String?
+  quantity       Float
+  unit           String?
+  rate           Float
+  discount       Float         @default(0)
+  taxableAmount  Float
+  cgst           Float
+  sgst           Float
+  totalAmount    Float
+  leadTime       String?
+}
+
+model QuoteTerm {
+  id             Int           @id @default(autoincrement())
+  quote          Quote         @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId        Int
+  description    String
+}
+
+model Order {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  orderNumber String  @unique
+  amount     Float
+  status     OrderStatus
+  quote      Quote    @relation(fields: [quoteId], references: [id])
+  quoteId    Int      @unique
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId Int
+  invoice    Invoice?
+}
+
+model Invoice {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  invoiceNumber String @unique
+  amount     Float
+  status     InvoiceStatus
+  dueDate    DateTime
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    Int      @unique
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId Int
+  recoveries Recovery[]
+}
+
+model Contract {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  contractNumber String @unique
+  startDate  DateTime
+  endDate    DateTime
+  value      Float
+  status     ContractStatus
+  terms      String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId Int
+}
+
+model Recovery {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  amount     Float
+  status     RecoveryStatus
+  dueDate    DateTime
+  notes      String?
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId  Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId Int
+}
+
+model SupportTicket {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  ticketNumber String @unique
+  subject    String
+  description String
+  status     SupportTicketStatus
+  priority   TicketPriority
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId Int
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  LOST
+}
+
+enum ProspectStatus {
+  INITIAL_CONTACT
+  NEEDS_ANALYSIS
+  PROPOSAL_SENT
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum RecoveryStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  FAILED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
